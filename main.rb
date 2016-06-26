@@ -1,25 +1,29 @@
 #!/usr/bin/ruby -w
 
 require 'csv'
-require 'byebug'
+#require 'byebug'
 
-  def readTSVline(l)
+### Function to read line from members CSV file
+def readTSVline(l)
 
-     seperator=','
-     if ! ENV['sep'].nil?
-        seperator= ENV['sep']
-     end
+   seperator=','
+   if ! ENV['sep'].nil?
+      seperator= ENV['sep']
+   end
 
-     row = CSV.parse_line(l, :col_sep => seperator).collect{|x|
-        if ! x.nil?
-            x.strip;
-        end
-     }
+   row = CSV.parse_line(l, :col_sep => seperator).collect{|x|
+      if ! x.nil?
+          x.strip;
+      end
+   }
 
-     ### Pick specify elements of that table
-     [0, 3, 6, 7, 12, 18, 19, 21].map {|i| row[i]}
-  end
+   ### Pick specify elements of that table
+   [0, 3, 6, 7, 12, 18, 19, 21].map {|i| row[i]}
+end
 
+
+
+### First let's make sure there is a membershil list
 if ARGV[0].nil? then
     $stderr.puts "I need the full path of the file as the first argument"
     exit 1
@@ -32,14 +36,15 @@ if ! File.file?(filePath)
     exit 1
 end
 
+### ... that is recent
 if Time.now() - File.mtime(filePath) > 24*60*60
     $stderr.puts "File is older than 24 hours.  May want to get a fresh membership list."
     exit 1
 end
 
 
+### Parse data for membership list
 users = []
-
 lineCount=0
 File.foreach(filePath) { |l|
     lineCount += 1
@@ -60,7 +65,6 @@ File.foreach(filePath) { |l|
     end
 }
 
-
 users.sort_by! { |hsh| hsh['lastAttendedDate'] }
 users.reverse!
 
@@ -68,6 +72,9 @@ users.reverse!
 
 #exit 0
 
+
+
+### Now let's read the communication history file
 appDir = File.expand_path("~") + '/.meetupAssist/'
 
 unless File.directory?(appDir)
@@ -84,41 +91,54 @@ if File.file?(commHistoryPath)
 
         lastComm = Date.parse(lastComm)
 
+        ### Take not of users we have contacted within last 30 days
         if Date.today - lastComm < 30.4
             usersMsgedLast30days.push(id.to_i)
         end
     }
 end
 
+
+### Read message file
 message = File.read(appDir + "reminder.txt")
 messageOldParticipants = File.read(appDir + "reminderOldParticipants.txt")
 
+
+
 c = File.open(commHistoryPath, 'a');
 
+### Go through each users
 users.each { |u|
     puts '=' * 72
     puts u['profileURL']
+
+    ### Skip if contacted in last 30 days
     if usersMsgedLast30days.include?(u['id'].to_i)
         puts "Skipping #{u['name']} cause recent communcation"
         next
     end
 
+    ### Process users not attending last 30 days
     msgContent = message
-    lastVisitDaysAgo = Date.today - u['lastAttendedDate']
-    if lastVisitDaysAgo > 6*30.4
+    lastAttendedDaysAgo = Date.today - u['lastAttendedDate']
+    if lastAttendedDaysAgo > 6*30.4
+
+        ### If old user did donate, don't bug them
         if ! u['lastDonationAmount'].nil?
-            puts "Skipping #{u['name']} cause user visited #{lastVisitDaysAgo.to_s} days ago (#{u['lastAttendedDate']}), donated #{u['lastDonationAmount']}"
+            puts "Skipping #{u['name']} cause user visited #{lastAttendedDaysAgo.to_s} days ago (#{u['lastAttendedDate']}), donated #{u['lastDonationAmount']}"
             next
-        else
+        else ### If not, prepare message for old participants
             msgContent = messageOldParticipants
         end
     end
 
+    ### Prepare thank you note
     thankYouStr = ''
     if ! u['lastDonationAmount'].nil?
         thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount'].sub('USD', '$')} last #{u['lastDonationDate']}.\n"
     end
 
+    ### Print message
     puts
     puts msgContent.sub('%THANKYOU%', thankYouStr).sub('%NAME%', u['name'].split(' ')[0])
     puts

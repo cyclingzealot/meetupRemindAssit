@@ -3,6 +3,9 @@
 require 'csv'
 #require 'byebug'
 
+oldUserTH = 6*30.4
+minMeetupReminder = 3
+
 ### Function to read line from members CSV file
 def readTSVline(l)
 
@@ -56,7 +59,7 @@ File.foreach(filePath) { |l|
 
     lastVisitDate = Date.parse(lastVisitDate)
 
-    if meetupsAttended.to_i > 3 and (lastDonationDate.nil? or Date.today - lastDonationDate > 365)
+    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > 365)
         users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
                 'meetupsAttended' => meetupsAttended, 'profileURL' => profileURL,
@@ -65,8 +68,12 @@ File.foreach(filePath) { |l|
     end
 }
 
-users.sort_by! { |hsh| hsh['lastAttendedDate'] }
-users.reverse!
+#users.sort_by! { |hsh| hsh['lastAttendedDate'] }
+#users.reverse!
+
+users.sort! { |a,b|
+    a[]
+}
 
 #puts users
 
@@ -121,7 +128,7 @@ users.each { |u|
     ### Process users not attending last 30 days
     msgContent = message
     lastAttendedDaysAgo = Date.today - u['lastAttendedDate']
-    if lastAttendedDaysAgo > 6*30.4
+    if lastAttendedDaysAgo > oldUserTH
 
         ### If old user did donate, don't bug them
         if ! u['lastDonationAmount'].nil?

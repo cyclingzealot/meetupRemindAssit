@@ -1,7 +1,7 @@
 #!/usr/bin/ruby -w
 
 require 'csv'
-#require 'byebug'
+require 'byebug'
 
 oldUserTH = 6*30.4
 minMeetupReminder = 3
@@ -62,17 +62,35 @@ File.foreach(filePath) { |l|
     if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > 365)
         users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
-                'meetupsAttended' => meetupsAttended, 'profileURL' => profileURL,
+                'meetupsAttended' => meetupsAttended.to_i, 'profileURL' => profileURL,
                 'lastDonationDate' => lastDonationDate,
         })
     end
 }
 
 #users.sort_by! { |hsh| hsh['lastAttendedDate'] }
-#users.reverse!
 
 users.sort! { |a,b|
-    a[]
+    chunkA = ((Date.today - a['lastAttendedDate'])/oldUserTH).floor;
+    chunkB = ((Date.today - b['lastAttendedDate'])/oldUserTH).floor;
+
+    if chunkA == chunkB
+        if chunkA == 0
+            b['lastAttendedDate'] - a['lastAttendedDate']
+        else
+            b['meetupsAttended'] - a['meetupsAttended']
+        end
+    else
+        chunkA - chunkB
+    end
+
+}
+
+#users.reverse!
+
+
+users.each { |u|
+    puts u
 }
 
 #puts users

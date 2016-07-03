@@ -9,7 +9,7 @@ minMeetupReminder = 3
 ### Function to read line from members CSV file
 def readTSVline(l)
 
-   seperator=','
+   seperator="\t"
    if ! ENV['sep'].nil?
       seperator= ENV['sep']
    end
@@ -136,6 +136,7 @@ c = File.open(commHistoryPath, 'a');
 users.each { |u|
     puts '=' * 72
     puts u['profileURL']
+    puts "Meetups attended: #{u['meetupsAttended']}\tLast meetup attended: #{u['lastAttendedDate']}\tLast site visit: #{u['lastVisit']}"
 
     ### Skip if contacted in last 30 days
     if usersMsgedLast30days.include?(u['id'].to_i)

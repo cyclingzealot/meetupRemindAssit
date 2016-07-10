@@ -1,7 +1,7 @@
 #!/usr/bin/ruby -w
 
 require 'csv'
-require 'byebug'
+#require 'byebug'
 
 oldUserTH = 6*30.4
 minMeetupReminder = 3
@@ -78,7 +78,7 @@ users.sort! { |a,b|
         if chunkA == 0
             b['lastAttendedDate'] - a['lastAttendedDate']
         else
-            b['meetupsAttended'] - a['meetupsAttended']
+            b['lastVisit'] - a['lastVisit']
         end
     else
         chunkA - chunkB

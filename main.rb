@@ -27,12 +27,13 @@ end
 
 
 ### First let's make sure there is a membershil list
-if ARGV[0].nil? then
-    $stderr.puts "I need the full path of the file as the first argument"
+if ARGV[0].nil? or ARGV[1].nil? then
+    $stderr.puts "I need the full path of the file as the first argument and shortfall as second argument."
     exit 1
 end
 
 filePath=ARGV[0]
+shortfall=ARGV[1].to_f
 
 if ! File.file?(filePath)
     $stderr.puts "There does not seem to be a file at #{filePath}"
@@ -158,6 +159,12 @@ users.each { |u|
         end
     end
 
+    ### Shortfall notice
+    shortfallStr = ''
+    if shortfall < 0
+        shortfallStr = "At the time of this writting, there is a shortfall of #{shortfall} $ ."
+    end
+
     ### Prepare thank you note
     thankYouStr = ''
     if ! u['lastDonationAmount'].nil?
@@ -166,7 +173,7 @@ users.each { |u|
 
     ### Print message
     puts
-    puts msgContent.sub('%THANKYOU%', thankYouStr).sub('%NAME%', u['name'].split(' ')[0])
+    puts msgContent.sub('%THANKYOU%', thankYouStr).sub('%NAME%', u['name'].split(' ')[0]).sub('%SHORTFALL%', shortfallStr)
     puts
 
     print "Did you write to #{u['name']}? y/n/q "

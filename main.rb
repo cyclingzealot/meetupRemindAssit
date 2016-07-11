@@ -162,7 +162,7 @@ users.each { |u|
     ### Shortfall notice
     shortfallStr = ''
     if shortfall < 0
-        shortfallStr = "At the time of this writting, there is a shortfall of #{shortfall} $ ."
+        shortfallStr = "At the time of this writting, there is a shortfall of #{format("%.2f", shortfall)} $ ."
     end
 
     ### Prepare thank you note

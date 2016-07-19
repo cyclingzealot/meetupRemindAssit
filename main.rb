@@ -5,6 +5,7 @@ require 'csv'
 
 oldUserTH = 6*30.4
 minMeetupReminder = 3
+lastCommTH = 21
 
 ### Function to read line from members CSV file
 def readTSVline(l)
@@ -60,7 +61,7 @@ File.foreach(filePath) { |l|
 
     lastVisitDate = Date.parse(lastVisitDate)
 
-    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > 365)
+    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > 365.25 - 14)
         users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
                 'meetupsAttended' => meetupsAttended.to_i, 'profileURL' => profileURL,
@@ -118,7 +119,7 @@ if File.file?(commHistoryPath)
         lastComm = Date.parse(lastComm)
 
         ### Take not of users we have contacted within last 30 days
-        if Date.today - lastComm < 30.4
+        if Date.today - lastComm < lastCommTH
             usersMsgedLast30days.push(id.to_i)
         end
     }

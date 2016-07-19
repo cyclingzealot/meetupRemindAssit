@@ -75,12 +75,22 @@ File.foreach(filePath) { |l|
 users.sort! { |a,b|
     chunkA = ((Date.today - a['lastAttendedDate'])/oldUserTH).floor;
     chunkB = ((Date.today - b['lastAttendedDate'])/oldUserTH).floor;
+    chunkAvisit = ((Date.today - a['lastVisit'])/45).floor;
+    chunkBvisit = ((Date.today - b['lastVisit'])/45).floor;
+
 
     if chunkA == chunkB
         if chunkA == 0
             b['lastAttendedDate'] - a['lastAttendedDate']
         else
             b['lastVisit'] - a['lastVisit']
+        end
+    elsif chunkA > 0 and chunkB > 0
+        if chunkAvisit == chunkBvisit
+            b['meetupsAttended'] - a['meetupsAttended']
+        else
+            chunkAvisit - chunkBvisit
+            #b['lastVisit'] - a['lastVisit']
         end
     else
         chunkA - chunkB
@@ -181,7 +191,7 @@ users.each { |u|
     yn = $stdin.gets.chomp
 
     #byebug
-    if yn != 'n' and yn != 'q'
+    if yn == 'y'
         str = "#{u['id']},#{Date.today.to_s}"
         $stderr.puts "Adding #{str} to #{commHistoryPath}"
         c.puts str

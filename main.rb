@@ -73,24 +73,24 @@ File.foreach(filePath) { |l|
 #users.sort_by! { |hsh| hsh['lastAttendedDate'] }
 
 users.sort! { |a,b|
-    chunkA = ((Date.today - a['lastAttendedDate'])/oldUserTH).floor;
-    chunkB = ((Date.today - b['lastAttendedDate'])/oldUserTH).floor;
-    chunkAvisit = ((Date.today - a['lastVisit'])/45).floor;
-    chunkBvisit = ((Date.today - b['lastVisit'])/45).floor;
+    chunkSize = 30.4
+
+    chunkAattend = ((Date.today - a['lastAttendedDate'])/chunkSize).floor;
+    chunkBattend = ((Date.today - b['lastAttendedDate'])/chunkSize).floor;
+    chunkAvisit = ((Date.today - a['lastVisit'])/chunkSize).floor;
+    chunkBvisit = ((Date.today - b['lastVisit'])/chunkSize).floor;
+
+    chunkA = [chunkAattend, chunkAvisit].min
+    chunkB = [chunkBattend, chunkBvisit].min
 
 
     if chunkA == chunkB
-        if chunkA == 0
-            b['lastAttendedDate'] - a['lastAttendedDate']
-        else
-            b['lastVisit'] - a['lastVisit']
-        end
-    elsif chunkA > 0 and chunkB > 0
-        if chunkAvisit == chunkBvisit
-            b['meetupsAttended'] - a['meetupsAttended']
-        else
+        if chunkAattend != chunkBattend
+            chunkAattend - chunkBattend
+        elsif chunkAvisit != chunkBvisit
             chunkAvisit - chunkBvisit
-            #b['lastVisit'] - a['lastVisit']
+        else
+            b['meetupsAttended'] - a['meetupsAttended']
         end
     else
         chunkA - chunkB
@@ -110,6 +110,9 @@ users.each { |u|
 #exit 0
 
 
+sleep 1
+
+puts '=' * 72
 
 ### Now let's read the communication history file
 appDir = File.expand_path("~") + '/.meetupAssist/'

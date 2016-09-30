@@ -1,11 +1,19 @@
 #!/usr/bin/ruby -w
 
 require 'csv'
-#require 'byebug'
+require 'byebug'
 
 oldUserTH = 6*30.4
 minMeetupReminder = 3
 lastCommTH = 21
+
+
+### Calculate the date until next season
+seasonBegin = Date.parse("2010-04-13")
+seasonBegin = Date.new(Date.today.year, seasonBegin.month, seasonBegin.day)
+seasonBegin = Date.new(Date.today.next_year.year, seasonBegin.month, seasonBegin.day) if Date.today >= seasonBegin
+skipTH = (seasonBegin - Date.today).to_i
+$stderr.puts "skipTH is #{skipTH} days"
 
 ### Function to read line from members CSV file
 def readTSVline(l)
@@ -61,7 +69,7 @@ File.foreach(filePath) { |l|
 
     lastVisitDate = Date.parse(lastVisitDate)
 
-    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > 365.25 - 14)
+    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > 365.25 - 30.4)
         users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
                 'meetupsAttended' => meetupsAttended.to_i, 'profileURL' => profileURL,
@@ -124,19 +132,29 @@ end
 commHistoryPath = appDir + '/commHistory.txt'
 
 usersMsgedLast30days = []
+notes = Hash.new
+skipUsers = []
 
 if File.file?(commHistoryPath)
     File.foreach(commHistoryPath) { |l|
-        id, lastComm = CSV.parse_line(l)
+        id, lastComm,skip,userNotes = CSV.parse_line(l)
 
         lastComm = Date.parse(lastComm)
+
+        notes[id.to_i] = userNotes if ! userNotes.nil? and ! userNotes.empty?
 
         ### Take not of users we have contacted within last 30 days
         if Date.today - lastComm < lastCommTH
             usersMsgedLast30days.push(id.to_i)
         end
+
+        if skip == 'skip' && Date.today - lastComm < skipTH
+            skipUsers.push(id.to_i)
+        end
+
     }
 end
+
 
 
 ### Read message file
@@ -152,12 +170,21 @@ users.each { |u|
     puts '=' * 72
     puts u['profileURL']
     puts "Meetups attended: #{u['meetupsAttended']}\tLast meetup attended: #{u['lastAttendedDate']}\tLast site visit: #{u['lastVisit']}"
+    puts "\nNOTES: " + notes[u['id'].to_i] if ! notes[u['id'].to_i].nil?
+    puts
+
 
     ### Skip if contacted in last 30 days
     if usersMsgedLast30days.include?(u['id'].to_i)
         puts "Skipping #{u['name']} cause recent communcation"
         next
     end
+
+    if skipUsers.include?(u['id'].to_i)
+        puts "Skip #{u['name']} cause requested skip"
+        next
+    end
+
 
     ### Process users not attending last 30 days
     msgContent = message
@@ -190,21 +217,43 @@ users.each { |u|
     puts msgContent.sub('%THANKYOU%', thankYouStr).sub('%NAME%', u['name'].split(' ')[0]).sub('%SHORTFALL%', shortfallStr)
     puts
 
-    print "Did you write to #{u['name']}? y/n/q "
-    yn = $stdin.gets.chomp
-
     #byebug
-    if yn == 'y'
-        str = "#{u['id']},#{Date.today.to_s}"
-        $stderr.puts "Adding #{str} to #{commHistoryPath}"
-        c.puts str
-    elsif yn == 'q'
-        $stderr.puts "Quitting"
-        break
+    ask = TRUE
+    notesIn   = ''
+    skip    = ''
+    while(ask == TRUE) do
+        notesTH = 5
+
+        print "Did you write to #{u['name']}? y/n/q/s/* (string longer than #{notesTH} chars will be stored as a note and you will be prompted again) "
+        yn = $stdin.gets.chomp
+
+	    if yn == 'y'
+            ask = FALSE
+	    elsif yn == 'n'
+            ask = FALSE
+	    elsif yn == 'q'
+	        $stderr.puts "Quitting"
+            ask = FALSE
+            exit 0
+	    elsif yn == 's'
+            skip = 'skip'
+            ask = FALSE
+        elsif yn.length > notesTH
+            notesIn = "\"#{yn}\""
+	    end
+
+        if yn == 'y' or yn == 's'
+	        str = "#{u['id']},#{Date.today.to_s},#{skip},#{notesIn}"
+
+    	    $stderr.puts "Adding #{str} to #{commHistoryPath}"
+    	    c.puts str
+        end
     end
 
 
 }
+
+c.close()
 
 
 #CSV.parse_line(l

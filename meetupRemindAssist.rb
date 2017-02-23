@@ -6,6 +6,14 @@ require 'byebug'
 oldUserTH = 6*30.4
 minMeetupReminder = 3
 lastCommTH = 21
+donationRenewalTH = 365.25-7
+userDonatedCount = 0
+userDonatedLast12monthCount = 0
+amountDonated = 0
+amountDonatedLast12months = 0
+activeUsers = 0
+activeUsersDonated = 0
+amountDonatedActiveUser = 0
 
 
 ### Calculate the date until next season
@@ -57,6 +65,7 @@ end
 
 
 ### Parse data for membership list
+### Also parse for statistics
 users = []
 lineCount=0
 File.foreach(filePath) { |l|
@@ -65,11 +74,34 @@ File.foreach(filePath) { |l|
 
     name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l)
 
+    if lastDonationAmount.nil?
+        #lastDonationAmount = 0
+    else
+        lastDonationAmount = lastDonationAmount.split(' ')[0].to_f
+    end
+
     lastDonationDate = Date.parse(lastDonationDate) if lastDonationDate
 
     lastVisitDate = Date.parse(lastVisitDate)
 
-    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > 365.25 - 30.4)
+    #byebug
+    if not lastAttendedDate.nil? and Date.today - Date.parse(lastAttendedDate) < oldUserTH and  meetupsAttended.to_i >= minMeetupReminder
+        activeUsers += 1
+        amountDonatedActiveUser += lastDonationAmount
+        activeUsersDonated += 1 if not lastDonationAmount.nil?
+    end if
+
+    if not lastDonationDate.nil?
+        userDonatedCount += 1
+        byebug if lastDonationAmount.class.name == 'String'
+        amountDonated += lastDonationAmount
+        if Date.today - lastDonationDate < 365.25
+            userDonatedLast12monthCount += 1
+            amountDonatedLast12months += lastDonationAmount
+        end
+    end
+
+    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > donationRenewalTH)
         users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
                 'meetupsAttended' => meetupsAttended.to_i, 'profileURL' => profileURL,
@@ -166,7 +198,9 @@ messageOldParticipants = File.read(appDir + "reminderOldParticipants.txt")
 c = File.open(commHistoryPath, 'a');
 
 ### Go through each users
+quit = FALSE
 users.each { |u|
+    break if quit
     puts '=' * 72
     puts u['profileURL']
     puts "Meetups attended: #{u['meetupsAttended']}\tLast meetup attended: #{u['lastAttendedDate']}\tLast site visit: #{u['lastVisit']}"
@@ -209,7 +243,7 @@ users.each { |u|
     ### Prepare thank you note
     thankYouStr = ''
     if ! u['lastDonationAmount'].nil?
-        thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount'].sub('USD', '$')} last #{u['lastDonationDate']}.\n"
+        thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount']} $ last #{u['lastDonationDate']}.\n"
     end
 
     ### Print message
@@ -234,7 +268,8 @@ users.each { |u|
 	    elsif yn == 'q'
 	        $stderr.puts "Quitting"
             ask = FALSE
-            exit 0
+            quit = TRUE
+            break
 	    elsif yn == 's'
             skip = 'skip'
             ask = FALSE
@@ -256,6 +291,17 @@ users.each { |u|
 c.close()
 
 
+
+puts "Distinct users who have donated: #{userDonatedCount} donors"
+puts "Distinct users who have donated last 12 months: #{userDonatedLast12monthCount} donors"
+puts "Total last donation: #{amountDonated} $"
+puts "Total last donation last 12 months: #{amountDonatedLast12months} $"
+puts "Avereage last donation: #{(amountDonated / userDonatedCount).round(2)} $"
+puts "Avereage last donation last 12 months: #{(amountDonatedLast12months / userDonatedLast12monthCount).round(2)} $"
+puts "Active user: #{activeUsers} users"
+puts "Active users donated: #{activeUsersDonated} users"
+puts "Total donations active user: #{amountDonatedActiveUser} $"
+puts "Average donations per active user: #{(amountDonatedActiveUser / activeUsers).round(2)} $"
 #CSV.parse_line(l
 
 #     CSV.parse_line(l, :col_sep => seperator).collect{|x|

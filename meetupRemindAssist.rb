@@ -88,7 +88,9 @@ File.foreach(filePath) { |l|
     if not lastAttendedDate.nil? and Date.today - Date.parse(lastAttendedDate) < oldUserTH and  meetupsAttended.to_i >= minMeetupReminder
         activeUsers += 1
         amountDonatedActiveUser += lastDonationAmount
-        activeUsersDonated += 1 if not lastDonationAmount.nil?
+        if not lastDonationAmount.nil?
+            activeUsersDonated += 1
+        end
     end if
 
     if not lastDonationDate.nil?

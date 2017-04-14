@@ -2,6 +2,11 @@
 
 require 'csv'
 require 'byebug'
+require_relative './config.rb'
+require 'json'
+require 'open-uri'
+require 'set'
+
 
 oldUserTH = 6*30.4
 minMeetupReminder = 3
@@ -69,6 +74,7 @@ end
 ### Parse data for membership list
 ### Also parse for statistics
 users = []
+eventsWithActiveNonDonors = {}
 lineCount=0
 File.foreach(filePath) { |l|
     lineCount += 1
@@ -80,7 +86,6 @@ File.foreach(filePath) { |l|
     id = id.to_i
     meetupsAttended = meetupsAttended.to_i
 
-    byebug if id == 210139168
     if lastDonationAmount.nil?
         #lastDonationAmount = 0
     else
@@ -98,6 +103,28 @@ File.foreach(filePath) { |l|
         if (not lastDonationDate.nil?) 
             amountDonatedActiveUser += lastDonationAmount
             activeUsersDonated += 1
+        else
+            url = "https://api.meetup.com/2/events?member_id=#{id}&offset=0&sign=True&format=json&limited_events=False&photo-host=public&page=20&fields=&order=time&status=upcoming&desc=false&key=#{$apiKey}"
+            $stderr.puts "Getting RSVP for #{name}"
+            stringData = open(url).read
+            hash = nil
+            hash = JSON.parse(stringData) if stringData.length > 2
+
+            if (not hash.nil?) and hash['results'].count > 0 
+                if hash['results'].select { |h|
+                    h['group']['id'] == $groupId 
+                }.each { |h|
+
+                    if eventsWithActiveNonDonors[h['event_url']].nil?
+                        eventsWithActiveNonDonors[h['event_url']] = Set.new
+                    end
+
+                    eventsWithActiveNonDonors[h['event_url']].add(name)
+
+                    #activeNonDonnors_comingToEvent[id] = h['name'] + " at " + Time.at(h['time'].to_i).to_s + "(#{h['event_url']})"
+                }
+                end
+            end
         end
     end
 
@@ -317,6 +344,13 @@ puts "Active user: #{activeUsers} users"
 puts "Active users donated: #{activeUsersDonated} users"
 puts "Total donations active user: #{amountDonatedActiveUser} $"
 puts "Average last donation per active user: #{(amountDonatedActiveUser / activeUsers).round(2)} $"
+
+
+puts 
+puts "Following users are active but have not donated:"
+eventsWithActiveNonDonors.each { |k,v|
+    puts "Event at #{k} has active non-donnors #{v.to_a.join(', ')}"
+}
 #CSV.parse_line(l
 
 #     CSV.parse_line(l, :col_sep => seperator).collect{|x|

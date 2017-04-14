@@ -106,6 +106,7 @@ File.foreach(filePath) { |l|
         else
             url = "https://api.meetup.com/2/events?member_id=#{id}&offset=0&sign=True&format=json&limited_events=False&photo-host=public&page=20&fields=&order=time&status=upcoming&desc=false&key=#{$apiKey}"
             $stderr.puts "Getting RSVP for #{name}"
+            $stderr.puts url
             stringData = open(url).read
             hash = nil
             hash = JSON.parse(stringData) if stringData.length > 2

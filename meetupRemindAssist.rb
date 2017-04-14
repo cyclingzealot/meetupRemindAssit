@@ -14,6 +14,8 @@ amountDonatedLast12months = 0
 activeUsers = 0
 activeUsersDonated = 0
 amountDonatedActiveUser = 0
+silentUsers = 0
+totalUsers =0 
 
 
 ### Calculate the date until next season
@@ -73,7 +75,12 @@ File.foreach(filePath) { |l|
     next if lineCount == 1
 
     name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l)
+    totalUsers += 1
 
+    id = id.to_i
+    meetupsAttended = meetupsAttended.to_i
+
+    byebug if id == 210139168
     if lastDonationAmount.nil?
         #lastDonationAmount = 0
     else
@@ -85,14 +92,16 @@ File.foreach(filePath) { |l|
     lastVisitDate = Date.parse(lastVisitDate)
 
     #byebug
-    if not lastAttendedDate.nil? and Date.today - Date.parse(lastAttendedDate) < oldUserTH and  meetupsAttended.to_i >= minMeetupReminder
+    #Active users statistics
+    if (not lastAttendedDate.nil?) and (Date.today - Date.parse(lastAttendedDate) < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
         activeUsers += 1
-        amountDonatedActiveUser += lastDonationAmount
-        if not lastDonationAmount.nil?
+        if (not lastDonationDate.nil?) 
+            amountDonatedActiveUser += lastDonationAmount
             activeUsersDonated += 1
         end
-    end if
+    end
 
+    #Donors statistics
     if not lastDonationDate.nil?
         userDonatedCount += 1
         byebug if lastDonationAmount.class.name == 'String'
@@ -102,6 +111,9 @@ File.foreach(filePath) { |l|
             amountDonatedLast12months += lastDonationAmount
         end
     end
+
+    #Silent users
+    silentUsers += 1 if (meetupsAttended==0 and lastDonationDate.nil?)
 
     if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > donationRenewalTH)
         users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
@@ -293,7 +305,8 @@ users.each { |u|
 c.close()
 
 
-
+puts "Total users: #{totalUsers} users"
+puts "Silent users: #{silentUsers} users (neither donated or attended)"
 puts "Distinct users who have donated: #{userDonatedCount} donors"
 puts "Distinct users who have donated last 12 months: #{userDonatedLast12monthCount} donors"
 puts "Total last donation: #{amountDonated} $"
@@ -303,7 +316,7 @@ puts "Avereage last donation last 12 months: #{(amountDonatedLast12months / user
 puts "Active user: #{activeUsers} users"
 puts "Active users donated: #{activeUsersDonated} users"
 puts "Total donations active user: #{amountDonatedActiveUser} $"
-puts "Average donations per active user: #{(amountDonatedActiveUser / activeUsers).round(2)} $"
+puts "Average last donation per active user: #{(amountDonatedActiveUser / activeUsers).round(2)} $"
 #CSV.parse_line(l
 
 #     CSV.parse_line(l, :col_sep => seperator).collect{|x|

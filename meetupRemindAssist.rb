@@ -4,7 +4,6 @@ require 'csv'
 require 'byebug'
 require_relative './config.rb'
 require 'json'
-require 'open-uri'
 require 'set'
 
 
@@ -74,7 +73,7 @@ end
 ### Parse data for membership list
 ### Also parse for statistics
 users = []
-eventsWithActiveNonDonors = {}
+activeNonDonnorsIDs = []
 lineCount=0
 File.foreach(filePath) { |l|
     lineCount += 1
@@ -104,28 +103,7 @@ File.foreach(filePath) { |l|
             amountDonatedActiveUser += lastDonationAmount
             activeUsersDonated += 1
         else
-            url = "https://api.meetup.com/2/events?member_id=#{id}&offset=0&sign=True&format=json&limited_events=False&photo-host=public&page=20&fields=&order=time&status=upcoming&desc=false&key=#{$apiKey}"
-            $stderr.puts "Getting RSVP for #{name}"
-            $stderr.puts url
-            stringData = open(url).read
-            hash = nil
-            hash = JSON.parse(stringData) if stringData.length > 2
-
-            if (not hash.nil?) and hash['results'].count > 0 
-                if hash['results'].select { |h|
-                    h['group']['id'] == $groupId 
-                }.each { |h|
-
-                    if eventsWithActiveNonDonors[h['event_url']].nil?
-                        eventsWithActiveNonDonors[h['event_url']] = Set.new
-                    end
-
-                    eventsWithActiveNonDonors[h['event_url']].add(name)
-
-                    #activeNonDonnors_comingToEvent[id] = h['name'] + " at " + Time.at(h['time'].to_i).to_s + "(#{h['event_url']})"
-                }
-                end
-            end
+            activeNonDonnorsIDs.push id
         end
     end
 
@@ -347,11 +325,45 @@ puts "Total donations active user: #{amountDonatedActiveUser} $"
 puts "Average last donation per active user: #{(amountDonatedActiveUser / activeUsers).round(2)} $"
 
 
-puts 
-puts "Following users are active but have not donated:"
-eventsWithActiveNonDonors.each { |k,v|
-    puts "Event at #{k} has active non-donnors #{v.to_a.join(', ')}"
+$stderr.puts
+$stderr.puts "Finding upcoming active non-donnors...."
+$stderr.puts
+
+require 'open-uri'
+url = "https://api.meetup.com/2/events?group_id=#{$groupId}&offset=0&sign=True&format=json&limited_events=False&photo-host=public&page=20&fields=&order=time&status=upcoming&desc=false&key=#{$apiKey}"
+$stderr.puts
+$stderr.puts "Getting upcoming event info"
+$stderr.puts
+stringData = open(url).read
+hash = nil
+hash = JSON.parse(stringData) if stringData.length > 2
+hash['results'].each { |eventData|
+    eventId = eventData['id']
+    eventName = eventData['name']
+    eventTime = Time.at(eventData['time'].to_i).to_s
+    eventUrl = eventData['event_url']
+    rsvpUrl = "https://api.meetup.com/2/rsvps?event_id=#{eventId}&rsvp=yes&key=#{$apiKey}"
+
+    rsvpDataStr = open(rsvpUrl).read
+    rsvpHash = nil
+    
+    printedHeader = FALSE
+    if rsvpDataStr.length > 2
+        rsvpHash = JSON.parse(rsvpDataStr) 
+
+        rsvpHash['results'].each { |rsvp|
+            if activeNonDonnorsIDs.include?(rsvp['member']['member_id'].to_i)
+                if not printedHeader
+                    puts
+                    puts "For #{eventName} at #{eventTime} (#{eventUrl})" 
+                end
+                printedHeader = TRUE
+                puts "#{rsvp['member']['name']} is non-acitve, has not donated"
+            end
+        }
+    end
 }
+puts 
 #CSV.parse_line(l
 
 #     CSV.parse_line(l, :col_sep => seperator).collect{|x|

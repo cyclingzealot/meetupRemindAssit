@@ -335,12 +335,19 @@ $stderr.puts
 $stderr.puts "Getting upcoming event info"
 $stderr.puts
 stringData = open(url).read
-hash = nil
+open(url).read #Not sure why I have to do this, but otherwise, each second time I run the script, it gets nothign
+hash = nil 
 hash = JSON.parse(stringData) if stringData.length > 2
+if hash.nil?
+    $stderr.puts "Unable to get event information. String data was:"
+    $stderr.puts stringData
+    exit 1
+end
+
 hash['results'].each { |eventData|
     eventId = eventData['id']
     eventName = eventData['name']
-    eventTime = Time.at(eventData['time'].to_i).to_s
+    eventTime = Time.at(eventData['time'].to_i/1000).to_s # + "(#{eventData['time']})"
     eventUrl = eventData['event_url']
     rsvpUrl = "https://api.meetup.com/2/rsvps?event_id=#{eventId}&rsvp=yes&key=#{$apiKey}"
 

@@ -99,7 +99,7 @@ File.foreach(filePath) { |l|
     #Active users statistics
     if (not lastAttendedDate.nil?) and (Date.today - Date.parse(lastAttendedDate) < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
         activeUsers += 1
-        if (not lastDonationDate.nil?) #and Date.today - lastDonationDate < 367
+        if (not lastDonationDate.nil?) and Date.today - lastDonationDate < 367
             amountDonatedActiveUser += lastDonationAmount
             activeUsersDonated += 1
         else

@@ -19,7 +19,7 @@ activeUsers = 0
 activeUsersDonated = 0
 amountDonatedActiveUser = 0
 silentUsers = 0
-totalUsers =0 
+totalUsers =0
 
 
 ### Calculate the date until next season
@@ -83,6 +83,7 @@ File.foreach(filePath) { |l|
     totalUsers += 1
 
     id = id.to_i
+    #byebug if id == 9406771
     meetupsAttended = meetupsAttended.to_i
 
     if lastDonationAmount.nil?
@@ -102,10 +103,14 @@ File.foreach(filePath) { |l|
         if (not lastDonationDate.nil?) and Date.today - lastDonationDate < 367
             amountDonatedActiveUser += lastDonationAmount
             activeUsersDonated += 1
-        else
-            activeNonDonnorsIDs.push id
         end
     end
+
+    # Active non donnors monitor
+    if (not lastAttendedDate.nil?) and (meetupsAttended >= minMeetupReminder) and (lastDonationDate.nil? or Date.today - lastDonationDate >= 366)
+        activeNonDonnorsIDs.push id
+    end
+
 
     #Donors statistics
     if not lastDonationDate.nil?
@@ -336,7 +341,7 @@ $stderr.puts "Getting upcoming event info"
 $stderr.puts
 stringData = open(url).read
 open(url).read #Not sure why I have to do this, but otherwise, each second time I run the script, it gets nothign
-hash = nil 
+hash = nil
 hash = JSON.parse(stringData) if stringData.length > 2
 if hash.nil?
     $stderr.puts "Unable to get event information. String data was:"
@@ -353,16 +358,16 @@ hash['results'].each { |eventData|
 
     rsvpDataStr = open(rsvpUrl).read
     rsvpHash = nil
-    
+
     printedHeader = FALSE
     if rsvpDataStr.length > 2
-        rsvpHash = JSON.parse(rsvpDataStr) 
+        rsvpHash = JSON.parse(rsvpDataStr)
 
         rsvpHash['results'].each { |rsvp|
             if activeNonDonnorsIDs.include?(rsvp['member']['member_id'].to_i)
                 if not printedHeader
                     puts
-                    puts "For #{eventName} at #{eventTime} (#{eventUrl})" 
+                    puts "For #{eventName} at #{eventTime} (#{eventUrl})"
                 end
                 printedHeader = TRUE
                 puts "#{rsvp['member']['name']} is non-acitve, has not donated"
@@ -370,7 +375,7 @@ hash['results'].each { |eventData|
         }
     end
 }
-puts 
+puts
 #CSV.parse_line(l
 
 #     CSV.parse_line(l, :col_sep => seperator).collect{|x|

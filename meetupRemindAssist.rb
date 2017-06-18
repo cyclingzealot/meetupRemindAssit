@@ -370,7 +370,7 @@ hash['results'].each { |eventData|
                     puts "For #{eventName} at #{eventTime} (#{eventUrl})"
                 end
                 printedHeader = TRUE
-                puts "#{rsvp['member']['name']} is non-acitve, has not donated"
+                puts "#{rsvp['member']['name']} is active, has not donated this year"
             end
         }
     end

@@ -2,7 +2,6 @@
 
 require 'csv'
 require 'byebug'
-require_relative './config.rb'
 require 'json'
 require 'set'
 
@@ -335,6 +334,8 @@ $stderr.puts "Finding upcoming active non-donnors...."
 $stderr.puts
 
 require 'open-uri'
+require_relative appDir + '/config.rb'
+
 url = "https://api.meetup.com/2/events?group_id=#{$groupId}&offset=0&sign=True&format=json&limited_events=False&photo-host=public&page=20&fields=&order=time&status=upcoming&desc=false&key=#{$apiKey}"
 $stderr.puts
 $stderr.puts "Getting upcoming event info"
@@ -348,6 +349,7 @@ if hash.nil?
     $stderr.puts stringData
     exit 1
 end
+
 
 hash['results'].each { |eventData|
     eventId = eventData['id']

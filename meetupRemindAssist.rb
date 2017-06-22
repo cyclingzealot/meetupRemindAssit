@@ -2,11 +2,23 @@
 
 require 'csv'
 require 'byebug'
+require 'json'
+require 'set'
+
 
 oldUserTH = 6*30.4
 minMeetupReminder = 3
 lastCommTH = 21
-lastDonationDaysTH = 365.25 - 7
+donationRenewalTH = 365.25-7
+userDonatedCount = 0
+userDonatedLast12monthCount = 0
+amountDonated = 0
+amountDonatedLast12months = 0
+activeUsers = 0
+activeUsersDonated = 0
+amountDonatedActiveUser = 0
+silentUsers = 0
+totalUsers =0
 
 
 ### Calculate the date until next season
@@ -58,19 +70,62 @@ end
 
 
 ### Parse data for membership list
+### Also parse for statistics
 users = []
+activeNonDonnorsIDs = []
 lineCount=0
 File.foreach(filePath) { |l|
     lineCount += 1
     next if lineCount == 1
 
     name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l)
+    totalUsers += 1
+
+    id = id.to_i
+    #byebug if id == 9406771
+    meetupsAttended = meetupsAttended.to_i
+
+    if lastDonationAmount.nil?
+        #lastDonationAmount = 0
+    else
+        lastDonationAmount = lastDonationAmount.split(' ')[0].to_f
+    end
 
     lastDonationDate = Date.parse(lastDonationDate) if lastDonationDate
 
     lastVisitDate = Date.parse(lastVisitDate)
 
-    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > lastDonationDaysTH)
+    #byebug
+    #Active users statistics
+    if (not lastAttendedDate.nil?) and (Date.today - Date.parse(lastAttendedDate) < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
+        activeUsers += 1
+        if (not lastDonationDate.nil?) and Date.today - lastDonationDate < 367
+            amountDonatedActiveUser += lastDonationAmount
+            activeUsersDonated += 1
+        end
+    end
+
+    # Active non donnors monitor
+    if (not lastAttendedDate.nil?) and (meetupsAttended >= minMeetupReminder) and (lastDonationDate.nil? or Date.today - lastDonationDate >= 366)
+        activeNonDonnorsIDs.push id
+    end
+
+
+    #Donors statistics
+    if not lastDonationDate.nil?
+        userDonatedCount += 1
+        byebug if lastDonationAmount.class.name == 'String'
+        amountDonated += lastDonationAmount
+        if Date.today - lastDonationDate < 365.25
+            userDonatedLast12monthCount += 1
+            amountDonatedLast12months += lastDonationAmount
+        end
+    end
+
+    #Silent users
+    silentUsers += 1 if (meetupsAttended==0 and lastDonationDate.nil?)
+
+    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > donationRenewalTH)
         users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
                 'meetupsAttended' => meetupsAttended.to_i, 'profileURL' => profileURL,
@@ -167,7 +222,9 @@ messageOldParticipants = File.read(appDir + "reminderOldParticipants.txt")
 c = File.open(commHistoryPath, 'a');
 
 ### Go through each users
+quit = FALSE
 users.each { |u|
+    break if quit
     puts '=' * 72
     puts u['profileURL']
     puts "Meetups attended: #{u['meetupsAttended']}\tLast meetup attended: #{u['lastAttendedDate']}\tLast site visit: #{u['lastVisit']}"
@@ -210,7 +267,7 @@ users.each { |u|
     ### Prepare thank you note
     thankYouStr = ''
     if ! u['lastDonationAmount'].nil?
-        thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount'].sub('USD', '$')} last #{u['lastDonationDate']}.\n"
+        thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount']} $ last #{u['lastDonationDate'].strftime('%B %-m %Y')}.\n"
     end
 
     ### Print message
@@ -235,7 +292,8 @@ users.each { |u|
 	    elsif yn == 'q'
 	        $stderr.puts "Quitting"
             ask = FALSE
-            exit 0
+            quit = TRUE
+            break
 	    elsif yn == 's'
             skip = 'skip'
             ask = FALSE
@@ -257,6 +315,69 @@ users.each { |u|
 c.close()
 
 
+puts "Total users: #{totalUsers} users"
+puts "Silent users: #{silentUsers} users (neither donated or attended)"
+puts "Distinct users who have donated: #{userDonatedCount} donors"
+puts "Distinct users who have donated last 12 months: #{userDonatedLast12monthCount} donors"
+puts "Total last donation: #{amountDonated} $"
+puts "Total last donation last 12 months: #{amountDonatedLast12months} $"
+puts "Avereage last donation: #{(amountDonated / userDonatedCount).round(2)} $"
+puts "Avereage last donation last 12 months: #{(amountDonatedLast12months / userDonatedLast12monthCount).round(2)} $"
+puts "Active user: #{activeUsers} users"
+puts "Active users donated: #{activeUsersDonated} users"
+puts "Total donations active user: #{amountDonatedActiveUser} $"
+puts "Average last donation per active user: #{(amountDonatedActiveUser / activeUsers).round(2)} $"
+
+
+$stderr.puts
+$stderr.puts "Finding upcoming active non-donnors...."
+$stderr.puts
+
+require 'open-uri'
+require_relative appDir + '/config.rb'
+
+url = "https://api.meetup.com/2/events?group_id=#{$groupId}&offset=0&sign=True&format=json&limited_events=False&photo-host=public&page=20&fields=&order=time&status=upcoming&desc=false&key=#{$apiKey}"
+$stderr.puts
+$stderr.puts "Getting upcoming event info"
+$stderr.puts
+stringData = open(url).read
+open(url).read #Not sure why I have to do this, but otherwise, each second time I run the script, it gets nothign
+hash = nil
+hash = JSON.parse(stringData) if stringData.length > 2
+if hash.nil?
+    $stderr.puts "Unable to get event information. String data was:"
+    $stderr.puts stringData
+    exit 1
+end
+
+
+hash['results'].each { |eventData|
+    eventId = eventData['id']
+    eventName = eventData['name']
+    eventTime = Time.at(eventData['time'].to_i/1000).to_s # + "(#{eventData['time']})"
+    eventUrl = eventData['event_url']
+    rsvpUrl = "https://api.meetup.com/2/rsvps?event_id=#{eventId}&rsvp=yes&key=#{$apiKey}"
+
+    rsvpDataStr = open(rsvpUrl).read
+    rsvpHash = nil
+
+    printedHeader = FALSE
+    if rsvpDataStr.length > 2
+        rsvpHash = JSON.parse(rsvpDataStr)
+
+        rsvpHash['results'].each { |rsvp|
+            if activeNonDonnorsIDs.include?(rsvp['member']['member_id'].to_i)
+                if not printedHeader
+                    puts
+                    puts "For #{eventName} at #{eventTime} (#{eventUrl})"
+                end
+                printedHeader = TRUE
+                puts "#{rsvp['member']['name']} is active, has not donated this year"
+            end
+        }
+    end
+}
+puts
 #CSV.parse_line(l
 
 #     CSV.parse_line(l, :col_sep => seperator).collect{|x|

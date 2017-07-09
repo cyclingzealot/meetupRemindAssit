@@ -8,7 +8,7 @@ require 'set'
 
 oldUserTH = 6*30.4
 minMeetupReminder = 3
-lastCommTH = 21
+lastCommTH = 30
 donationRenewalTH = 365.25-7
 userDonatedCount = 0
 userDonatedLast12monthCount = 0
@@ -106,7 +106,7 @@ File.foreach(filePath) { |l|
     end
 
     # Active non donnors monitor
-    if (not lastAttendedDate.nil?) and (meetupsAttended >= minMeetupReminder) and (lastDonationDate.nil? or Date.today - lastDonationDate >= 366)
+    if (not lastAttendedDate.nil?) and (meetupsAttended >= minMeetupReminder-1) and (lastDonationDate.nil? or Date.today - lastDonationDate >= 366)
         activeNonDonnorsIDs.push id
     end
 
@@ -187,6 +187,7 @@ end
 
 commHistoryPath = appDir + '/commHistory.txt'
 
+lastCommDates = {}
 usersMsgedLast30days = []
 notes = Hash.new
 skipUsers = []
@@ -194,18 +195,20 @@ skipUsers = []
 if File.file?(commHistoryPath)
     File.foreach(commHistoryPath) { |l|
         id, lastComm,skip,userNotes = CSV.parse_line(l)
-
         lastComm = Date.parse(lastComm)
+        id = id.to_i
 
-        notes[id.to_i] = userNotes if ! userNotes.nil? and ! userNotes.empty?
+        notes[id] = userNotes if ! userNotes.nil? and ! userNotes.empty?
+
+        lastCommDates[id] = lastComm
 
         ### Take not of users we have contacted within last 30 days
         if Date.today - lastComm < lastCommTH
-            usersMsgedLast30days.push(id.to_i)
+            usersMsgedLast30days.push(id)
         end
 
         if skip == 'skip' && Date.today - lastComm < skipTH
-            skipUsers.push(id.to_i)
+            skipUsers.push(id)
         end
 
     }
@@ -227,7 +230,7 @@ users.each { |u|
     break if quit
     puts '=' * 72
     puts u['profileURL']
-    puts "Meetups attended: #{u['meetupsAttended']}\tLast meetup attended: #{u['lastAttendedDate']}\tLast site visit: #{u['lastVisit']}"
+    puts "Meetups attended: #{u['meetupsAttended']}\tLast meetup attended: #{u['lastAttendedDate']}\tLast site visit: #{u['lastVisit']}\tLast comm: #{lastCommDates[u['id'].to_i] if not lastCommDates[u['id'].to_i].nil?}"
     puts "\nNOTES: " + notes[u['id'].to_i] if ! notes[u['id'].to_i].nil?
     puts
 
@@ -241,6 +244,15 @@ users.each { |u|
     if skipUsers.include?(u['id'].to_i)
         puts "Skip #{u['name']} cause requested skip"
         next
+    end
+
+    if ! lastCommDates[u['id'].to_i].nil?
+        if lastCommDates[u['id'].to_i] > u['lastAttendedDate']
+            if Date.today - lastCommDates[u['id'].to_i] < lastCommTH*2
+                puts "Skipping #{u['name']} cause no attendance since last communication"
+                next
+            end
+        end
     end
 
 

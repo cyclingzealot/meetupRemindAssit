@@ -6,7 +6,7 @@ require 'json'
 require 'set'
 
 
-oldUserTH = 6*30.4
+oldUserTH = 2*30.4
 minMeetupReminder = 3
 lastCommTH = 30
 donationRenewalTH = 365.25-7

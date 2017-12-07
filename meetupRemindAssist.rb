@@ -234,7 +234,7 @@ messageOldParticipants = File.read(appDir + "reminderOldParticipants.txt")
 c = File.open(commHistoryPath, 'a');
 
 ### Go through each users
-quit = FALSE
+quit = false
 users.each { |u|
     break if quit
     puts '=' * 72
@@ -297,27 +297,27 @@ users.each { |u|
     puts
 
     #byebug
-    ask = TRUE
+    ask = true
     notesIn   = ''
     skip    = ''
-    while(ask == TRUE) do
+    while(ask == true) do
         notesTH = 5
 
         print "Did you write to #{u['name']}? y/n/q/s/* (string longer than #{notesTH} chars will be stored as a note and you will be prompted again) "
         yn = $stdin.gets.chomp
 
 	    if yn == 'y'
-            ask = FALSE
+            ask = false
 	    elsif yn == 'n'
-            ask = FALSE
+            ask = false
 	    elsif yn == 'q'
 	        $stderr.puts "Quitting"
-            ask = FALSE
-            quit = TRUE
+            ask = false
+            quit = true
             break
 	    elsif yn == 's'
             skip = 'skip'
-            ask = FALSE
+            ask = false
         elsif yn.length > notesTH
             notesIn = "\"#{yn}\""
 	    end
@@ -382,7 +382,7 @@ hash['results'].each { |eventData|
     rsvpDataStr = open(rsvpUrl).read
     rsvpHash = nil
 
-    printedHeader = FALSE
+    printedHeader = false
     if rsvpDataStr.length > 2
         rsvpHash = JSON.parse(rsvpDataStr)
 
@@ -392,7 +392,7 @@ hash['results'].each { |eventData|
                     puts
                     puts "For #{eventName} at #{eventTime} (#{eventUrl})"
                 end
-                printedHeader = TRUE
+                printedHeader = true
                 puts "#{rsvp['member']['name']} is active, has not donated this year"
             end
         }

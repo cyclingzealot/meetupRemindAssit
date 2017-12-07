@@ -91,7 +91,12 @@ File.foreach(filePath) { |l|
         lastDonationAmount = lastDonationAmount.split(' ')[0].to_f
     end
 
-    lastDonationDate = Date.parse(lastDonationDate) if lastDonationDate
+    begin
+        lastDonationDate = Date.parse(lastDonationDate) if lastDonationDate
+    rescue ArgumentError
+        $stderr.puts "Could not parse lastDonationDate '#{lastDonationDate}' on line #{lineCount} (first line 1)"
+        exit 1
+    end
 
     begin
         lastVisitDate = Date.parse(lastVisitDate)

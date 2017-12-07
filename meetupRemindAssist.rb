@@ -93,7 +93,11 @@ File.foreach(filePath) { |l|
 
     lastDonationDate = Date.parse(lastDonationDate) if lastDonationDate
 
-    lastVisitDate = Date.parse(lastVisitDate)
+    begin
+        lastVisitDate = Date.parse(lastVisitDate)
+    rescue
+        byebug
+    end
 
     #byebug
     #Active users statistics

@@ -82,7 +82,6 @@ File.foreach(filePath) { |l|
     totalUsers += 1
 
     id = id.to_i
-    #byebug if id == 9406771
     meetupsAttended = meetupsAttended.to_i
 
     if lastDonationAmount.nil?
@@ -100,11 +99,12 @@ File.foreach(filePath) { |l|
 
     begin
         lastVisitDate = Date.parse(lastVisitDate)
-    rescue
+    rescue => e
+        puts e
         byebug
+        nil
     end
 
-    #byebug
     #Active users statistics
     if (not lastAttendedDate.nil?) and (Date.today - Date.parse(lastAttendedDate) < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
         activeUsers += 1
@@ -191,6 +191,7 @@ puts '=' * 72
 appDir = File.expand_path("~") + '/.meetupAssist/'
 
 unless File.directory?(appDir)
+    require 'fileutils'
   FileUtils.mkdir_p(appDir)
 end
 

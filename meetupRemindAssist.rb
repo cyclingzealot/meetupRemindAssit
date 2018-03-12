@@ -288,7 +288,7 @@ users.each { |u|
     ### Prepare thank you note
     thankYouStr = ''
     if ! u['lastDonationAmount'].nil?
-        thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount']} $ last #{u['lastDonationDate'].strftime('%B %-m %Y')}.\n"
+        thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount']} $ last #{u['lastDonationDate'].strftime('%B %-d %Y')}.\n"
     end
 
     ### Print message

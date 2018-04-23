@@ -101,7 +101,9 @@ File.foreach(filePath) { |l|
     begin
         lastVisitDate = Date.parse(lastVisitDate)
     rescue
+        puts "Looks like Date.parse didn't like #{lastVisitDate}"
         byebug
+        nil
     end
 
     #byebug

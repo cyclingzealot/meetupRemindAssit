@@ -5,6 +5,8 @@ require 'byebug'
 require 'json'
 require 'set'
 
+require_relative './dates_international.rb'
+
 
 oldUserTH = 2*30.4
 minMeetupReminder = 3
@@ -91,14 +93,14 @@ File.foreach(filePath) { |l|
     end
 
     begin
-        lastDonationDate = Date.parse(lastDonationDate) if lastDonationDate
+        lastDonationDate = Date.parse_international(lastDonationDate) if lastDonationDate
     rescue ArgumentError
         $stderr.puts "Could not parse lastDonationDate '#{lastDonationDate}' on line #{lineCount} (first line 1)"
         exit 1
     end
 
     begin
-        lastVisitDate = Date.parse(lastVisitDate)
+        lastVisitDate = Date.parse_international(lastVisitDate)
     rescue => e
         puts e
         puts "Looks like Date.parse didn't like #{lastVisitDate}"
@@ -107,7 +109,7 @@ File.foreach(filePath) { |l|
     end
 
     #Active users statistics
-    if (not lastAttendedDate.nil?) and (Date.today - Date.parse(lastAttendedDate) < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
+    if (not lastAttendedDate.nil?) and (Date.today - Date.parse_international(lastAttendedDate) < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
         activeUsers += 1
         if (not lastDonationDate.nil?) and Date.today - lastDonationDate < 367
             amountDonatedActiveUser += lastDonationAmount
@@ -136,7 +138,7 @@ File.foreach(filePath) { |l|
     silentUsers += 1 if (meetupsAttended==0 and lastDonationDate.nil?)
 
     if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > donationRenewalTH)
-        users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse(lastAttendedDate),
+        users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse_international(lastAttendedDate),
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
                 'meetupsAttended' => meetupsAttended.to_i, 'profileURL' => profileURL,
                 'lastDonationDate' => lastDonationDate,

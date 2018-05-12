@@ -30,21 +30,34 @@ seasonBegin = Date.new(Date.today.next_year.year, seasonBegin.month, seasonBegin
 skipTH = (seasonBegin - Date.today).to_i
 $stderr.puts "skipTH is #{skipTH} days"
 
-### Function to read line from members CSV file
-def readTSVline(l)
 
-   seperator="\t"
+### Function to detect sep
+    def self.detectSeperator(filePath)
+        seperators = [';', ':', "\t", ',', '|']
+        firstLine = File.open(filePath, &:readline)
+
+        seperators.max_by{ |s|
+            firstLine.split(s).count
+        }
+    end
+
+
+### Function to read line from members CSV file
+def readTSVline(l, sep=',')
+
    if ! ENV['sep'].nil?
       seperator= ENV['sep']
    end
 
-   row = CSV.parse_line(l, :col_sep => seperator).collect{|x|
+   #row = CSV.parse_line(l, :col_sep => seperator).collect{|x|
+   row = l.split(seperator).collect{|x|
       if ! x.nil?
           x.strip;
       end
    }
 
    ### Pick specify elements of that table
+    #name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(seperator)
    [0, 3, 6, 7, 12, 18, 19, 21].map {|i| row[i]}
 end
 
@@ -71,6 +84,9 @@ if Time.now() - File.mtime(filePath) > 24*60*60
 end
 
 
+seperator=detectSeperator(filePath)
+
+
 ### Parse data for membership list
 ### Also parse for statistics
 users = []
@@ -80,7 +96,7 @@ File.foreach(filePath) { |l|
     lineCount += 1
     next if lineCount == 1
 
-    name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l)
+    name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l, seperator)
     totalUsers += 1
 
     id = id.to_i
@@ -125,7 +141,6 @@ File.foreach(filePath) { |l|
     #Donors statistics
     if not lastDonationDate.nil?
         userDonatedCount += 1
-        byebug if lastDonationAmount.class.name == 'String'
         amountDonated += lastDonationAmount
         if Date.today - lastDonationDate < 365.25
             userDonatedLast12monthCount += 1

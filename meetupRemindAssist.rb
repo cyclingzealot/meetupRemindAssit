@@ -364,6 +364,7 @@ users.each { |u|
 
 c.close()
 
+puts "WARNING: #{errorDuringProcessing.count} users not processed" if errorDuringProcessing.count > 0
 
 puts "Total users: #{totalUsers} users"
 puts "Silent users: #{silentUsers} users (neither donated or attended)"
@@ -430,7 +431,6 @@ hash['results'].each { |eventData|
 
 puts
 
-puts "WARNING: #{errorDuringProcessing.count} users not processed" if errorDuringProcessing.count > 0
 
 puts
 #CSV.parse_line(l

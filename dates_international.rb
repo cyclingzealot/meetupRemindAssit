@@ -20,7 +20,7 @@
 
 class Date
   def self.parse_international(string)
-    parse(month_to_english(string))
+        parse(month_to_english(string))
   end
 
   private

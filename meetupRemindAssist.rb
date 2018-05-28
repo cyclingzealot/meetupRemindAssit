@@ -92,11 +92,14 @@ seperator=detectSeperator(filePath)
 users = []
 activeNonDonnorsIDs = []
 lineCount=0
+errorDuringProcessing = []
 File.foreach(filePath) { |l|
+begin
     lineCount += 1
     next if lineCount == 1
 
     name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l, seperator)
+
     totalUsers += 1
 
     id = id.to_i
@@ -112,7 +115,7 @@ File.foreach(filePath) { |l|
         lastDonationDate = Date.parse_international(lastDonationDate) if lastDonationDate
     rescue ArgumentError
         $stderr.puts "Could not parse lastDonationDate '#{lastDonationDate}' on line #{lineCount} (first line 1)"
-        exit 1
+        raise
     end
 
     begin
@@ -121,7 +124,7 @@ File.foreach(filePath) { |l|
         puts e
         puts "Looks like Date.parse didn't like #{lastVisitDate}"
         byebug
-        nil
+        raise
     end
 
     #Active users statistics
@@ -159,6 +162,11 @@ File.foreach(filePath) { |l|
                 'lastDonationDate' => lastDonationDate,
         })
     end
+
+rescue => e
+    errorDuringProcessing.push(l)
+    next
+end
 }
 
 #users.sort_by! { |hsh| hsh['lastAttendedDate'] }

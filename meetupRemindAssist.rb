@@ -104,45 +104,53 @@ begin
     id = id.to_i
     meetupsAttended = meetupsAttended.to_i
 
-    if lastDonationAmount.nil?
-        #lastDonationAmount = 0
-    else
-        lastDonationAmount = lastDonationAmount.split(' ')[0].to_f
-    end
-
     begin
-        lastDonationDate = Date.parse_international(lastDonationDate) if lastDonationDate.present?
+	    if lastDonationAmount.empty?
+	        lastDonationAmount = nil
+	        lastDonationDate = nil
+	    else
+	        lastDonationAmount = lastDonationAmount.split(' ')[0].to_f
+	        lastDonationDate = Date.parse_international(lastDonationDate) if not lastDonationDate.empty?
+	    end
     rescue ArgumentError
         $stderr.puts "Could not parse lastDonationDate '#{lastDonationDate}' on line #{lineCount} (first line 1)"
+        byebug if errorDuringProcessing.count < 4
         raise
     end
+
 
     begin
         lastVisitDate = Date.parse_international(lastVisitDate)
     rescue => e
-        puts e
-        puts "Looks like Date.parse didn't like #{lastVisitDate}"
-        byebug
+        $stderr.puts "Could not parse lastVisitDate '#{lastVisitDate}' on line #{lineCount} (first line 1)"
+        byebug if errorDuringProcessing.count < 4
         raise
     end
 
+    lastAttendedDate = Date.parse_international(lastAttendedDate) if not lastAttendedDate.empty?
+
     #Active users statistics
-    if (not lastAttendedDate.nil?) and (Date.today - Date.parse_international(lastAttendedDate) < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
-        activeUsers += 1
-        if (not lastDonationDate.nil?) and Date.today - lastDonationDate < 367
-            amountDonatedActiveUser += lastDonationAmount
-            activeUsersDonated += 1
-        end
+    begin
+	    if (lastAttendedDate.class == Date) and (Date.today - lastAttendedDate < oldUserTH) and  (meetupsAttended >= minMeetupReminder)
+	        activeUsers += 1
+	        if (lastDonationDate.class == Date) and Date.today - lastDonationDate < 367
+	            amountDonatedActiveUser += lastDonationAmount
+	            activeUsersDonated += 1
+	        end
+	    end
+    rescue => e
+        byebug if errorDuringProcessing.count < 4
+        raise
     end
 
     # Active non donnors monitor
-    if (not lastAttendedDate.nil?) and (meetupsAttended >= minMeetupReminder-1) and (lastDonationDate.nil? or Date.today - lastDonationDate >= 366)
+    if (lastAttendedDate.class == Date) and (meetupsAttended >= minMeetupReminder-1) and (lastDonationDate.class != Date or Date.today - lastDonationDate >= 366)
         activeNonDonnorsIDs.push id
     end
 
 
     #Donors statistics
-    if not lastDonationDate.nil?
+    if lastDonationDate.class == Date
         userDonatedCount += 1
         amountDonated += lastDonationAmount
         if Date.today - lastDonationDate < 365.25
@@ -152,10 +160,11 @@ begin
     end
 
     #Silent users
-    silentUsers += 1 if (meetupsAttended==0 and lastDonationDate.nil?)
+    silentUsers += 1 if (meetupsAttended==0 and lastDonationDate.class != Date)
 
-    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.nil? or Date.today - lastDonationDate > donationRenewalTH)
-        users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => Date.parse_international(lastAttendedDate),
+    if meetupsAttended.to_i >= minMeetupReminder and (lastDonationDate.class != Date or Date.today - lastDonationDate > donationRenewalTH)
+        byebug if lastDonationDate == ""
+        users.push({ 'name' => name, 'id' => id, 'lastAttendedDate' => lastAttendedDate,
                 'lastDonationAmount' => lastDonationAmount, 'lastVisit' => lastVisitDate,
                 'meetupsAttended' => meetupsAttended.to_i, 'profileURL' => profileURL,
                 'lastDonationDate' => lastDonationDate,
@@ -163,6 +172,7 @@ begin
     end
 
 rescue => e
+    byebug if errorDuringProcessing.count < 4
     errorDuringProcessing.push(l)
     next
 end

@@ -43,14 +43,12 @@ $stderr.puts "skipTH is #{skipTH} days"
 
 
 ### Function to read line from members CSV file
-def readTSVline(l, sep=',')
+def readTSVline(l, sep=nil)
 
-   if ! ENV['sep'].nil?
-      seperator= ENV['sep']
-   end
+    sep = detectSeperator if sep.nil?
 
    #row = CSV.parse_line(l, :col_sep => seperator).collect{|x|
-   row = l.split(seperator).collect{|x|
+   row = l.split(sep).collect{|x|
       if ! x.nil?
           x.strip;
       end
@@ -98,6 +96,7 @@ begin
     lineCount += 1
     next if lineCount == 1
 
+    byebug if lineCount < 3
     name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l, seperator)
 
     totalUsers += 1
@@ -112,7 +111,7 @@ begin
     end
 
     begin
-        lastDonationDate = Date.parse_international(lastDonationDate) if lastDonationDate
+        lastDonationDate = Date.parse_international(lastDonationDate) if lastDonationDate.present?
     rescue ArgumentError
         $stderr.puts "Could not parse lastDonationDate '#{lastDonationDate}' on line #{lineCount} (first line 1)"
         raise
@@ -315,7 +314,10 @@ users.each { |u|
     ### Prepare thank you note
     thankYouStr = ''
     if ! u['lastDonationAmount'].nil?
-        thankYouStr = "\nThank you for your doanation of #{u['lastDonationAmount']} $ last #{u['lastDonationDate'].strftime('%B %-d %Y')}.\n"
+        thankYouStr = "\nThank you for your donation"
+        thankYouStr +=" of #{u['lastDonationAmount']} $" if u['lastDonationAmount'].to_f >= 1
+        thankYouStr += " last #{u['lastDonationDate'].strftime('%B %-d %Y')}.\n"
+
     end
 
     ### Print message
@@ -425,6 +427,11 @@ hash['results'].each { |eventData|
         }
     end
 }
+
+puts
+
+puts "WARNING: #{errorDuringProcessing.count} users not processed" if errorDuringProcessing.count > 0
+
 puts
 #CSV.parse_line(l
 

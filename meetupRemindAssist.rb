@@ -21,6 +21,7 @@ activeUsersDonated = 0
 amountDonatedActiveUser = 0
 silentUsers = 0
 totalUsers =0
+yearCostInCAD = (ARGV[2].to_f or 96.0*2*1.4) # 96 USD / 6 months * 2 * 1.4 high exchange rate
 
 
 ### Calculate the date until next season
@@ -70,6 +71,19 @@ end
 filePath=ARGV[0]
 shortfall=ARGV[1].to_f
 
+### If the shortfall is positive, then we can increase threholds
+ratio=1
+if shortfall >= yearCostInCAD
+    ratio = shortfall / yearCostInCAD
+    minMeetupReminder   *= ratio
+    lastCommTH          *= ratio
+    donationRenewalTH   *= ratio
+
+    puts "Thresholds have been increased by #{ratio.round(2)}"
+    puts "minMeetupReminderTH: #{minMeetupReminder.round(1)}   lastCommTH: #{lastCommTH.round(1)}   donationRenewalTH: #{donationRenewalTH.round(1)}"
+    sleep 1
+end
+
 if ! File.file?(filePath)
     $stderr.puts "There does not seem to be a file at #{filePath}"
     exit 1
@@ -96,7 +110,7 @@ begin
     lineCount += 1
     next if lineCount == 1
 
-    byebug if lineCount < 3
+    #byebug if lineCount < 3
     name, id, lastVisitDate, lastAttendedDate, meetupsAttended, profileURL, lastDonationAmount, lastDonationDate = readTSVline(l, seperator)
 
     totalUsers += 1
@@ -276,6 +290,7 @@ users.each { |u|
     puts '=' * 72
     puts u['profileURL']
     puts "Meetups attended: #{u['meetupsAttended']}\tLast meetup attended: #{u['lastAttendedDate']}\tLast site visit: #{u['lastVisit']}\tLast comm: #{lastCommDates[u['id'].to_i] if not lastCommDates[u['id'].to_i].nil?}"
+    puts "minMeetupReminderTH: #{minMeetupReminder.round(1)}   lastCommTH: #{lastCommTH.round(1)}   donationRenewalTH: #{(donationRenewalTH/365.25).round(2)} y" if ratio > 1
     puts "\nNOTES: " + notes[u['id'].to_i] if ! notes[u['id'].to_i].nil?
     puts
 

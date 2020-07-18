@@ -21,7 +21,9 @@ activeUsersDonated = 0
 amountDonatedActiveUser = 0
 silentUsers = 0
 totalUsers =0
-yearCostInCAD = (ARGV[2].to_f or 96.0*2*1.4) # 96 USD / 6 months * 2 * 1.4 high exchange rate
+oneUSDinCAD=1.36
+yearCostInCAD = 96.0*2*oneUSDinCAD # 96 USD / 6 months * 2 * 1.4 high exchange rate
+yearCostInCAD = ARGV[2].to_f if not ARGV[2].nil?
 
 
 ### Calculate the date until next season
@@ -405,12 +407,20 @@ puts "Total donations active user: #{amountDonatedActiveUser} $"
 puts "Average last donation per active user: #{(amountDonatedActiveUser / activeUsers).round(2)} $"
 
 
+$stderr.puts "\n"*3
+$stderr.puts "Version 2 API with API keys no longer supported.  "
+$stderr.puts "See https://help.meetup.com/hc/en-us/articles/360028901812-Using-Meetup-s-API and https://www.meetup.com/fr-FR/meetup_api/auth/"
+$stderr.puts "Also need to figure out REST service point for getting events for my group."
+$stderr.puts "\n"*3
+exit 1
+
 $stderr.puts
 $stderr.puts "Finding upcoming active non-donnors...."
 $stderr.puts
 
 require 'open-uri'
 require_relative appDir + '/config.rb'
+
 
 url = "https://api.meetup.com/2/events?group_id=#{$groupId}&offset=0&sign=True&format=json&limited_events=False&photo-host=public&page=20&fields=&order=time&status=upcoming&desc=false&key=#{$apiKey}"
 $stderr.puts
